@@ -31,21 +31,49 @@ class ExactExtractor:
     def __init__(self):
         self.version = "5.0"
 
-    def extract_ssh(self, content):
-        """Extract SSH format - matches screenshot exactly"""
-        details = {
-            'host': 'Not Found',
-            'port': '80',
-            'user': 'Not Found',
-            'pass': 'Not Found',
-            'sni': '',
-            'mode': 'SSH',
-            'payload': '',
-            'ssl': False,
-            'type': 'SSH',
-            'proxy': '',
-            'dns': ''
-        }
+    # JSON Dark Tunnel Config Parser
+try:
+    data = json.loads(content)
+
+    enc = data.get("encryptedLockedConfig", {}) \
+              .get("EncryptedLockedConfig", {})
+
+    ssh = enc.get("SshConfig", {})
+    inject = enc.get("InjectConfig", {})
+
+    details["host"] = ssh.get("EncryptedHost", "Not Found")
+    details["port"] = ssh.get("EncryptedPort", "80")
+    details["user"] = ssh.get("EncryptedUsername", "Not Found")
+    details["pass"] = ssh.get("EncryptedPassword", "Not Found")
+
+    details["sni"] = inject.get(
+        "EncryptedServerNameIndication", ""
+    )
+
+    details["proxy"] = (
+        inject.get("EncryptedProxyHost", "") +
+        ":" +
+        inject.get("EncryptedProxyPort", "")
+    )
+
+    details["dns"] = (
+        inject.get("EncryptedDnsttDnsHost", "") +
+        ":" +
+        inject.get("EncryptedDnsttDnsPort", "")
+    )
+
+    details["payload"] = inject.get(
+        "EncryptedPayload", ""
+    )
+
+    details["mode"] = inject.get(
+        "EncryptedMode", "SSH"
+    )
+
+    return details
+
+except Exception:
+    pass
 
         # Host - look for HOST or Host or host
         host_match = re.search(r'HOST\s+:\s*([a-zA-Z0-9][a-zA-Z0-9.-]*\.[a-zA-Z]{2,})', content, re.IGNORECASE)
