@@ -31,49 +31,51 @@ class ExactExtractor:
     def __init__(self):
         self.version = "5.0"
 
-    # JSON Dark Tunnel Config Parser
-try:
-    data = json.loads(content)
+    def extract_ssh(self, content):
+    details = {
+        'host': 'Not Found',
+        'port': '80',
+        'user': 'Not Found',
+        'pass': 'Not Found',
+        'sni': '',
+        'mode': 'SSH',
+        'payload': '',
+        'ssl': False,
+        'type': 'SSH',
+        'proxy': '',
+        'dns': ''
+    }
 
-    enc = data.get("encryptedLockedConfig", {}) \
-              .get("EncryptedLockedConfig", {})
+    # Dark Tunnel TXT JSON parser
+    try:
+        import json
+        data = json.loads(content)
 
-    ssh = enc.get("SshConfig", {})
-    inject = enc.get("InjectConfig", {})
+        enc = data.get("encryptedLockedConfig", {}).get("EncryptedLockedConfig", {})
+        ssh = enc.get("SshConfig", {})
+        inject = enc.get("InjectConfig", {})
 
-    details["host"] = ssh.get("EncryptedHost", "Not Found")
-    details["port"] = ssh.get("EncryptedPort", "80")
-    details["user"] = ssh.get("EncryptedUsername", "Not Found")
-    details["pass"] = ssh.get("EncryptedPassword", "Not Found")
+        if ssh:
+            details["host"] = ssh.get("EncryptedHost", "Not Found")
+            details["port"] = str(ssh.get("EncryptedPort", "80"))
+            details["user"] = ssh.get("EncryptedUsername", "Not Found")
+            details["pass"] = ssh.get("EncryptedPassword", "Not Found")
 
-    details["sni"] = inject.get(
-        "EncryptedServerNameIndication", ""
-    )
+            details["sni"] = inject.get("EncryptedServerNameIndication", "")
+            details["payload"] = inject.get("EncryptedPayload", "")
+            details["mode"] = inject.get("EncryptedMode", "SSH")
 
-    details["proxy"] = (
-        inject.get("EncryptedProxyHost", "") +
-        ":" +
-        inject.get("EncryptedProxyPort", "")
-    )
+            proxy_host = inject.get("EncryptedProxyHost", "")
+            proxy_port = inject.get("EncryptedProxyPort", "")
+            details["proxy"] = f"{proxy_host}:{proxy_port}" if proxy_host else ""
 
-    details["dns"] = (
-        inject.get("EncryptedDnsttDnsHost", "") +
-        ":" +
-        inject.get("EncryptedDnsttDnsPort", "")
-    )
+            dns_host = inject.get("EncryptedDnsttDnsHost", "")
+            dns_port = inject.get("EncryptedDnsttDnsPort", "")
+            details["dns"] = f"{dns_host}:{dns_port}" if dns_host else ""
 
-    details["payload"] = inject.get(
-        "EncryptedPayload", ""
-    )
-
-    details["mode"] = inject.get(
-        "EncryptedMode", "SSH"
-    )
-
-    return details
-
-except Exception:
-    pass
+            return details
+    except Exception:
+        pass
 
         # Host - look for HOST or Host or host
         host_match = re.search(r'HOST\s+:\s*([a-zA-Z0-9][a-zA-Z0-9.-]*\.[a-zA-Z]{2,})', content, re.IGNORECASE)
